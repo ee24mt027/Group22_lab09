@@ -41,11 +41,49 @@ void I2C0_send(uint8_t address, uint8_t msb, uint8_t lsb) {
 }
 
 
+void systick_config(void) {
+    STRELOAD = SYSTICK_RELOAD(1000);                      // Set reload for 1 ms intervals
+    STCTRL |= ENABLE | CLKINT;                            // Enable SysTick with system clock
+    STCURRENT = 0;                                        // Clear current value register
+}
+
+
+void delay_us(int us) {
+    STRELOAD = SYSTICK_RELOAD(us);                        // Load value for the specified delay
+    STCURRENT = 0;                                        // Clear current value register
+    STCTRL |= ENABLE | CLKINT;                            // Start SysTick
+    while ((STCTRL & (1 << 16)) == 0);                    // Wait for the count flag
+    STCTRL &= ~ENABLE;                                    // Disable SysTick
+}
+
+
+#define MCP4725_ADDR 0x60                                 // MCP4725 I2C address
+
+
+void output_analog(uint16_t value) {
+    uint8_t msb = (value >> 8) & 0x0F;                    // Upper 4 bits
+    uint8_t lsb = value & 0xFF;                           // Lower 8 bits
+
+    I2C0_send(MCP4725_ADDR, msb, lsb);                    // Transmit to DAC
+}
+
+// Sawtooth waveform sample array: values increase from 0 to 4095
 int samples[100];
 void generate_sawtooth_samples(void) {
     int i;
     for (i = 0; i < 100; i++) {
         samples[i] = (4095 * i) / 100;                    // Linear distribution from 0 to max DAC value
+    }
+}
+
+// Generate waveform from samples array
+void generate_waveform(void) {
+    int i;
+    while (1) {
+        for (i = 0; i < 100; i++) {
+            output_analog(samples[i]);                    // Output the current sample
+        }
+        delay_us(1000);                                   // Delay to control waveform frequency
     }
 }
 
