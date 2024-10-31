@@ -41,6 +41,13 @@ void I2C0_send(uint8_t address, uint8_t msb, uint8_t lsb) {
 }
 
 
+int samples[100];
+void generate_sawtooth_samples(void) {
+    int i;
+    for (i = 0; i < 100; i++) {
+        samples[i] = (4095 * i) / 100;                    // Linear distribution from 0 to max DAC value
+    }
+}
 
 int main(void) {
     systick_config();                                     // Configure SysTick
